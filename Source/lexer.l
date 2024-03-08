@@ -52,6 +52,8 @@ enum {
   tok_LE,
   tok_NE,
 
+
+
   // C's keywords (kind of :)
   tok_AUTO,
   tok_BREAK,
@@ -129,11 +131,15 @@ int yycolno;
 
 // Forward decls for functions used in action routines ...
 int isKeyword( const char *txt );
+int getOperatorToken (const char *txt);
 %}
 
 /* Some definitions to make the REs below easier to understand. */
 DIGIT       [0-9]
 WORD_CHAR   [_a-zA-Z0-9]
+SINGLE_OP   [+-*/^!]
+TWO_CHAR_OP   "=="|"<="|">="|"<>"
+
 
 %% //---- RULES --------------------------------------------------
 
@@ -157,6 +163,7 @@ WORD_CHAR   [_a-zA-Z0-9]
     return kw;
   }
 
+
   // It isn't a keyword;  treat it as an ID.
   // An id has a MALLOCed copy of the characters that make it up
   //  as its attribute.  Remember to free() this somewhere so you
@@ -166,6 +173,16 @@ WORD_CHAR   [_a-zA-Z0-9]
   // We successfully scanned an id.
   return tok_ID;
 }
+{SINGLE_OP} {
+
+  return (yytext[0]);
+}
+{TWO_CHAR_OP} {
+  int token = getOperatorToken(yytext);
+  yylval.strval= strdup(yytext);
+  return token;
+}
+
 
 [ \f\t\v]+  { /* Ignore intertoken whitespace */ }
 
@@ -217,8 +234,47 @@ typedef struct {
 } Keyword;
 
 Keyword keywords[] = {
-  { "auto", tok_AUTO }
+  { "auto", tok_AUTO },
+  { "break", tok_BREAK },
+  { "case", tok_CASE },
+  { "char", tok_CHAR },
+  { "const", tok_CONST },
+  { "continue", tok_CONTINUE },
+  { "default", tok_DEFAULT },
+  { "do", tok_DO },
+  { "double", tok_DOUBLE },
+  { "else", tok_ELSE },
+  { "enum", tok_ENUM },
+  { "extern", tok_EXTERN },
+  { "float", tok_FLOAT },
+  { "for", tok_FOR },
+  { "goto", tok_GOTO },
+  { "if", tok_IF },
+  { "inline", tok_INLINE },
+  { "int", tok_INT },
+  { "long", tok_LONG },
+  { "read", tok_READ },
+  { "register", tok_REGISTER },
+  { "restrict", tok_RESTRICT },
+  { "return", tok_RETURN },
+  { "short", tok_SHORT },
+  { "signed", tok_SIGNED },
+  { "sizeof", tok_SIZEOF },
+  { "static", tok_STATIC },
+  { "struct", tok_STRUCT },
+  { "switch", tok_SWITCH },
+  { "typedef", tok_TYPEDEF },
+  { "typeof", tok_TYPEOF },
+  { "union", tok_UNION },
+  { "unsigned", tok_UNSIGNED },
+  { "var", tok_VAR },
+  { "void", tok_VOID },
+  { "volatile", tok_VOLATILE },
+  { "while", tok_WHILE },
+  { "write", tok_WRITE },
+
 };
+
 
 #define NUM_KEYWORDS ( sizeof(keywords) / sizeof(Keyword) )
 
@@ -244,6 +300,29 @@ char *tokToKW( int tok )
   return NULL;
 }
 
+typedef struct{
+  char *operator;
+  int tok;
+
+}Operator;
+
+Operator operators[]={
+  {"==", tok_EQ},
+  {"<=", tok_LE},
+  {">=", tok_GE},
+  {"<>", tok_NE},
+};
+#define NUM_OPERATORS (sizeof(operators)/sizeof(Operator))
+int getOperatorToken( const char *txt)
+{
+  for ( size_t i==0; i< NUM_OPERATORS; i++)
+  {
+    if (strcmp(txt, operators[i].operator)==0){
+      return operators[i].tok
+    }
+  }
+
+}
 //----------------------------------------------------------------
 void printTokLoc()
 {
@@ -317,9 +396,66 @@ int main( int argc, char *argv[] )
         printf( "Punctuation '%c' (%d)\n", tok, tok );
         break;
 
+      case tok_BREAK:
+      case tok_CASE:
+      case tok_CHAR:
+      case tok_CONST:
+      case tok_CONTINUE:
+      case tok_DEFAULT:
+      case tok_DO:
+      case tok_DOUBLE:
+      case tok_ELSE:
+      case tok_ENUM:
+      case tok_EXTERN:
+      case tok_FLOAT:
+      case tok_FOR:
+      case tok_GOTO:
+      case tok_IF:
+      case tok_INLINE:
+      case tok_INT:
+      case tok_LONG:
+      case tok_READ:
+      case tok_REGISTER:
+      case tok_RESTRICT:
+      case tok_RETURN:
+      case tok_SHORT:
+      case tok_SIGNED:
+      case tok_SIZEOF:
+      case tok_STATIC:
+      case tok_STRUCT:
+      case tok_SWITCH:
+      case tok_TYPEDEF:
+      case tok_TYPEOF:
+      case tok_UNION:
+      case tok_UNSIGNED:
+      case tok_VAR:
+      case tok_VOID:
+      case tok_VOLATILE:
+      case tok_WHILE:
+      case tok_WRITE:
       case tok_AUTO :
         printf( "Keyword '%s' (%d)\n", tokToKW( tok ), tok );
         break;
+      
+      case '+':
+      case '-':
+      case '/':
+      case '*':
+      case '^':
+      case '!':
+      case '<':
+      case '>':
+        printf("Single operator '%c' (%d)\n", tok, tok);
+        break;
+      case tok_EQ:
+      case tok_NE:
+      case tok_GE:
+      case tok_LE:
+        printf("Two character operator '%s' (%d)\n", yylval.strval, tok);
+        free(yylval.strval);
+        break;
+      
+
 
       default :
         printf( "Unknown token category %d?\n", tok );
