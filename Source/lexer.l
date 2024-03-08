@@ -173,8 +173,7 @@ TWO_CHAR_OP   "=="|"<="|">="|"<>"
   // We successfully scanned an id.
   return tok_ID;
 }
-{SINGLE_OP} {
-
+[+-*/>!^<] {
   return (yytext[0]);
 }
 {TWO_CHAR_OP} {
@@ -313,14 +312,16 @@ Operator operators[]={
   {"<>", tok_NE},
 };
 #define NUM_OPERATORS (sizeof(operators)/sizeof(Operator))
+
 int getOperatorToken( const char *txt)
 {
-  for ( size_t i==0; i< NUM_OPERATORS; i++)
+  for ( size_t i=0; i< NUM_OPERATORS; i++)
   {
     if (strcmp(txt, operators[i].operator)==0){
-      return operators[i].tok
+      return operators[i].tok;
     }
   }
+  return 0;
 
 }
 //----------------------------------------------------------------
@@ -436,17 +437,7 @@ int main( int argc, char *argv[] )
       case tok_AUTO :
         printf( "Keyword '%s' (%d)\n", tokToKW( tok ), tok );
         break;
-      
-      case '+':
-      case '-':
-      case '/':
-      case '*':
-      case '^':
-      case '!':
-      case '<':
-      case '>':
-        printf("Single operator '%c' (%d)\n", tok, tok);
-        break;
+
       case tok_EQ:
       case tok_NE:
       case tok_GE:
@@ -454,7 +445,18 @@ int main( int argc, char *argv[] )
         printf("Two character operator '%s' (%d)\n", yylval.strval, tok);
         free(yylval.strval);
         break;
-      
+
+      case '+':
+      case '-':
+      case '/':
+      case '*':
+      case '!':
+      case '<':
+      case '>':
+      case '^':
+        printf( "Single operator '%c' (%d)\n", tok, tok );
+        break;
+
 
 
       default :
