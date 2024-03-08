@@ -45,6 +45,11 @@ enum {
   tok_ID = 256,
   tok_INT_LIT,
   tok_STR_LIT,
+  tok_REAL,
+  tok_HEX,
+  tok_BIT,
+  tok_OCT,
+  tok_SCI,
 
   // The two-character operators
   tok_EQ,
@@ -102,6 +107,7 @@ enum {
 union {
   int   intval;
   char *strval;
+  double realval;
 } yylval;
 
 // yylloc is the location of the token.  This is usually defined
@@ -141,6 +147,12 @@ SINGLE_OP   [+-*/^!><=]
 TWO_CHAR_OP   "=="|"<="|">="|"<>"
 INLINE_COM  "//".*
 STRING      ["][^"\n]*["]
+REAl   [0-9]*([0-9]+\.|\.[0-9]+)[0-9]*
+HEXIT [0-9a-fA-F]
+BITIT [01]
+OCTIT [0-7]
+MUL_COM "/*"([])*"*/"
+
 
 
 
@@ -156,6 +168,27 @@ STRING      ["][^"\n]*["]
   // We successfully scanned an integer literal.
   return tok_INT_LIT;
 }
+[0-9]*([0-9]+\.|\.[0-9]+)[0-9]*[eE][-+]?[0-9]+? {
+  yylval.strval = strdup(yytext);
+  return tok_SCI;
+}
+{REAl} {
+  yylval.realval = atof(yytext);
+  return tok_REAL;
+}
+0[xX]{HEXIT}+ {
+  yylval.intval = (int) strtol(yytext+2, NULL, 16);
+  return tok_HEX;
+}
+0[bB]{BITIT}+ {
+  yylval.intval = (int) strtol(yytext+2, NULL, 2);
+  return tok_BIT;
+}
+0[oO]{OCTIT}+ {
+  yylval.intval = (int) strtol(yytext +2, NULL, 8);
+  return tok_OCT;
+}
+
 
 {STRING} {
   yylval.strval = strdup(yytext);
@@ -402,11 +435,28 @@ int main( int argc, char *argv[] )
       case tok_INT_LIT :
         printf( "INTEGER_LITERAL %d\n", yylval.intval );
         break;
-      
+      case tok_REAL:
+        printf("REAL LITERAL %f\n", yylval.realval);
+        break;
+      case tok_HEX:
+        printf("HEX LITERAL %d\n", yylval.intval);
+        break;
+      case tok_BIT:
+        printf("BIT LITERAL %d\n", yylval.intval);
+        break;
+      case tok_OCT:
+        printf("OCT LITERAL %d\n", yylval.intval);
+        break;
+      case tok_SCI:
+        printf("SCIENTIFIC %s\n", yylval.strval);
+        free(yylval.strval);
+        break;
       case tok_STR_LIT:
         printf(" STRING_LITERAL %s\n", yylval.strval);
         free(yylval.strval);
         break;
+      
+      
 
       case '(' : case ')': case '{': case'}': case '[': case ']' :
       case ',':
