@@ -137,13 +137,16 @@ int getOperatorToken (const char *txt);
 /* Some definitions to make the REs below easier to understand. */
 DIGIT       [0-9]
 WORD_CHAR   [_a-zA-Z0-9]
-SINGLE_OP   [+-*/^!]
+SINGLE_OP   [+-*/^!><=]
 TWO_CHAR_OP   "=="|"<="|">="|"<>"
+INLINE_COM  "//".*
+STRING      ["][^"\n]*["]
+
 
 
 %% //---- RULES --------------------------------------------------
 
-[()]      { return yytext[0]; }
+[(){}[\],\.;:]      { return yytext[0]; }
 
 {DIGIT}+  {
   // An integer literal has the decimal value of the string of
@@ -152,6 +155,11 @@ TWO_CHAR_OP   "=="|"<="|">="|"<>"
 
   // We successfully scanned an integer literal.
   return tok_INT_LIT;
+}
+
+{STRING} {
+  yylval.strval = strdup(yytext);
+  return tok_STR_LIT;
 }
 
 [_a-zA-Z]{WORD_CHAR}*  {
@@ -173,14 +181,16 @@ TWO_CHAR_OP   "=="|"<="|">="|"<>"
   // We successfully scanned an id.
   return tok_ID;
 }
-[+-*/>!^<] {
-  return (yytext[0]);
-}
+
 {TWO_CHAR_OP} {
   int token = getOperatorToken(yytext);
   yylval.strval= strdup(yytext);
   return token;
 }
+[*+-/^!<>] {
+  return (yytext[0]);
+}
+{INLINE_COM} {}
 
 
 [ \f\t\v]+  { /* Ignore intertoken whitespace */ }
@@ -392,8 +402,16 @@ int main( int argc, char *argv[] )
       case tok_INT_LIT :
         printf( "INTEGER_LITERAL %d\n", yylval.intval );
         break;
+      
+      case tok_STR_LIT:
+        printf(" STRING_LITERAL %s\n", yylval.strval);
+        free(yylval.strval);
+        break;
 
-      case '(' : case ')' :
+      case '(' : case ')': case '{': case'}': case '[': case ']' :
+      case ',':
+      case ';':
+      case ':':
         printf( "Punctuation '%c' (%d)\n", tok, tok );
         break;
 
